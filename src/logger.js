@@ -33,7 +33,7 @@ const BANNER = `
 ${C.cyan}${C.bold}   ╔═╗┌─┐┌─┐┬  ┬┌┐┌┌─┐╔╦╗╔═╗╔╦╗╔╦╗
 ${C.cyan}   ║ ║├┤ ├┤ │  ││││├┤ ║║║║ ║ ║  ║║
 ${C.blue}   ╚═╝└  └  ┴─┘┴┘└┘└─┘╩ ╩╚═╝ ╩ ═╩╝${C.reset}
-${C.gray}   Pterodactyl-Aware Fake Minecraft MOTD Server${C.reset}
+${C.gray}   Pterodactyl Offline Minecraft MOTD Server${C.reset}
 ${C.gray}   ─────────────────────────────────────────────${C.reset}
 `;
 

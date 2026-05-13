@@ -24,7 +24,17 @@
 
 ## Quick Start
 
-### 1. Install Node.js 18+
+### One-Line Install (Linux)
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/galaxy338/OfflineMOTD/main/install.sh)
+```
+
+This handles everything: Node.js check, download, config setup, and systemd service.
+
+### Manual Setup
+
+#### 1. Install Node.js 18+
 
 ### 2. Configure
 
