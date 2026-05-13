@@ -1,6 +1,6 @@
 # AlwaysMOTD
 
-**Pterodactyl-aware fake Minecraft MOTD server** — automatically discovers ALL your servers from the Pterodactyl Panel API. When a server is offline or suspended, it shows a custom MOTD on that port. When the server starts, it releases the port seamlessly.
+**Pterodactyl-aware fake Minecraft MOTD server** — automatically discovers ALL your servers from the Pterodactyl Panel API. When a server is offline or suspended, it shows a custom MOTD with **rotating ads** on that port. When the server starts, it releases the port seamlessly.
 
 **Zero server configuration needed** — just provide your Pterodactyl API keys and it handles everything.
 
@@ -10,6 +10,7 @@
 
 - 🔍 **Auto-Discovery** — Fetches ALL servers from Pterodactyl automatically (with pagination)
 - 🎯 **Dynamic MOTD** — Different messages for offline vs. suspended, with server name injected
+- 📢 **Rotating Ads** — Cycle through multiple ads on line 2 of the MOTD (each refresh shows the next ad)
 - 🖥️ **Multi-Server** — Monitors every server on your panel simultaneously
 - ⚡ **Power Control** — Start/stop real servers via API (stops MOTD → releases port → tells Pterodactyl)
 - 🔄 **Seamless Port Handoff** — No "port already in use" errors
@@ -45,7 +46,7 @@ That's it. No server list needed — AlwaysMOTD discovers everything automatical
 ### 3. Get API Keys
 
 | Key | Where | Purpose |
-|-----|-------|---------|
+|-----|-------|---------| 
 | `apiKey` (Application) | Admin → Application API | List servers, check suspended |
 | `clientApiKey` (Client) | Account → API Credentials | Power state + power control |
 
@@ -78,9 +79,62 @@ You'll see it discover and register all your servers:
 
 ---
 
+## MOTD Configuration & Rotating Ads
+
+Each state (offline/suspended) has its own MOTD line 1, kick message, and a list of **rotating ads** for line 2. Every time a player refreshes their server list, they see the next ad.
+
+```json
+{
+  "motd": {
+    "offline": {
+      "line1": "§7This server is currently offline. §8| §bYour Brand",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.",
+      "ads": [
+        "§e§lAD: §fGet 10% off on your first order! §7Use code §aSAVE10",
+        "§e§lAD: §fVisit §bexample.com §ffor premium hosting!",
+        "§e§lAD: §fNeed more RAM? Upgrade today at §bexample.com/plans"
+      ]
+    },
+    "suspended": {
+      "line1": "§4§l⛔ Server Suspended §8| §bYour Brand",
+      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.",
+      "ads": [
+        "§e§lAD: §fVisit §bexample.com §ffor premium hosting!"
+      ]
+    }
+  }
+}
+```
+
+**Result in Minecraft server list:**
+```
+Line 1: §7This server is currently offline. | Your Brand
+Line 2: §e§lAD: §fGet 10% off on your first order! §7Use code §aSAVE10   ← rotates each refresh
+```
+
+> **Note:** If `ads` is empty or missing, a static `line2` field is used as fallback.
+
+### Server Icon
+
+The server icon must be a **64×64 pixel PNG** file (max ~16KB). Larger images will be skipped to avoid protocol issues.
+
+```json
+{
+  "minecraft": {
+    "version": "1.21.5",
+    "protocol": 770,
+    "icon": "./server-icon.png"
+  }
+}
+```
+
+---
+
 ## HTTP Control API
 
-Runs on port `3100` (configurable). Server names are case-insensitive.
+Runs on port `3100` (configurable). Accepts server names or UUIDs.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -109,29 +163,6 @@ curl http://localhost:3100/api/status/Survival
 
 ---
 
-## MOTD Templates
-
-The MOTD uses `{SERVER_NAME}` as a placeholder that gets replaced with each server's actual name:
-
-```json
-{
-  "motd": {
-    "offline": {
-      "line1": "§c§l⚠ {SERVER_NAME} — Offline",
-      "line2": "§7Check back soon!",
-      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline."
-    },
-    "suspended": {
-      "line1": "§4§l⛔ {SERVER_NAME} — Suspended",
-      "line2": "§cContact an administrator",
-      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended."
-    }
-  }
-}
-```
-
----
-
 ## Pterodactyl Panel Modification
 
 The included `pterodactyl/PowerButtons.tsx` modifies the panel's Start button so it calls AlwaysMOTD first:
@@ -145,13 +176,20 @@ The included `pterodactyl/PowerButtons.tsx` modifies the panel's Start button so
 cp pterodactyl/PowerButtons.tsx \
    /var/www/pterodactyl/resources/scripts/components/server/console/PowerButtons.tsx
 
-# 2. Edit ALWAYSMOTD_URL in the file (line 38)
-#    const ALWAYSMOTD_URL = 'http://YOUR_ALWAYSMOTD_IP:3100';
+# 2. Add nginx reverse proxy (required for HTTPS panels)
+#    Add to your Pterodactyl nginx server{} block:
+#
+#    location /motd-api/ {
+#        proxy_pass http://127.0.0.1:3100/;
+#        proxy_set_header Host $host;
+#        proxy_set_header X-Real-IP $remote_addr;
+#    }
+#
+#    Then reload nginx: sudo nginx -t && sudo systemctl reload nginx
 
 # 3. Rebuild the panel frontend
 cd /var/www/pterodactyl
-yarn install
-yarn build:production
+NODE_OPTIONS=--openssl-legacy-provider yarn build:production
 ```
 
 If AlwaysMOTD is unreachable, the Start button falls back to normal behavior.

@@ -17,80 +17,51 @@ const log = require('./logger');
 
 const TAG = 'FakeMC';
 
-// ─── LEB128 VarInt encoding/decoding ────────────────────────────────────────
-// https://en.wikipedia.org/wiki/LEB128
-const leb = {
-    encode(value) {
-        value |= 0;
-        const result = [];
-        while (true) {
-            const byte = value & 0x7f;
-            value >>= 7;
-            if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0)) {
-                result.push(byte);
-                return Buffer.from(result);
-            }
-            result.push(byte | 0x80);
+// ─── VarInt helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Encode an integer as a Minecraft-style VarInt
+ */
+function writeVarInt(value) {
+    value |= 0;
+    const result = [];
+    while (true) {
+        const byte = value & 0x7f;
+        value >>>= 7;
+        if (value === 0) {
+            result.push(byte);
+            return Buffer.from(result);
         }
-    },
-    decode(input) {
-        let result = 0;
-        let shift = 0;
-        while (true) {
-            const byte = input.shift();
-            result |= (byte & 0x7f) << shift;
-            shift += 7;
-            if ((0x80 & byte) === 0) {
-                if (shift < 32 && (byte & 0x40) !== 0) {
-                    return result | (~0 << shift);
-                }
-                return result;
-            }
-        }
-    },
-};
+        result.push(byte | 0x80);
+    }
+}
 
-// ─── Packet parser ──────────────────────────────────────────────────────────
-const parsePacket = {
-    hostname(buffer) {
-        const val1 = 3;
-        const val2 = buffer.indexOf(0x00) === -1 ? buffer.length - 3 : buffer.indexOf(0x00) - 4;
-        return buffer.slice(val1, val2).toString('utf8');
-    },
-
-    port(buffer) {
-        const val1 = buffer.indexOf(0x00) === -1 ? buffer.length - 3 : buffer.indexOf(0x00) - 4;
-        const val2 = buffer.indexOf(0x00) === -1 ? buffer.length - 1 : buffer.indexOf(0x00) - 2;
-        return buffer.slice(val1, val2).readUInt16BE();
-    },
-
-    protocol(buffer) {
-        return leb.decode(Array.prototype.slice.call(buffer.slice(0, 2)));
-    },
-
-    player(rawBuffer, buffer) {
-        if (buffer.indexOf(0x00) === -1) return '';
-        const val1 = buffer.indexOf(0x00) + 2;
-        const val2 = rawBuffer.length;
-        return buffer.slice(val1, val2).toString('utf8');
-    },
-
-    state(buffer) {
-        const val1 = buffer.indexOf(0x00) === -1 ? buffer.length - 1 : buffer.indexOf(0x00) - 2;
-        const val2 = buffer.indexOf(0x00) === -1 ? buffer.length : buffer.indexOf(0x00) - 1;
-        return buffer.slice(val1, val2).readInt8();
-    },
-};
+/**
+ * Read a VarInt from a buffer at the given offset.
+ * Returns { value, length } where length is bytes consumed.
+ */
+function readVarInt(buffer, offset = 0) {
+    let value = 0;
+    let length = 0;
+    let byte;
+    do {
+        if (offset + length >= buffer.length) throw new Error('VarInt: not enough data');
+        byte = buffer[offset + length];
+        value |= (byte & 0x7f) << (7 * length);
+        length++;
+        if (length > 5) throw new Error('VarInt: too long');
+    } while ((byte & 0x80) !== 0);
+    return { value, length };
+}
 
 // ─── Encode a JSON response into MC protocol packet ─────────────────────────
-function encodePacket(data) {
-    data = Buffer.from(JSON.stringify(data), 'utf-8');
-    return Buffer.concat([
-        leb.encode(data.byteLength + leb.encode(data.byteLength).byteLength + 1),
-        Buffer.alloc(1),
-        leb.encode(data.byteLength),
-        data,
-    ]);
+function encodePacket(packetId, data) {
+    const jsonBuf = Buffer.from(JSON.stringify(data), 'utf-8');
+    const packetIdBuf = writeVarInt(packetId);
+    const jsonLenBuf = writeVarInt(jsonBuf.length);
+    const payload = Buffer.concat([packetIdBuf, jsonLenBuf, jsonBuf]);
+    const lengthBuf = writeVarInt(payload.length);
+    return Buffer.concat([lengthBuf, payload]);
 }
 
 // ─── Load server icon as base64 ─────────────────────────────────────────────
@@ -98,8 +69,15 @@ function loadIcon(iconPath) {
     try {
         const resolved = path.resolve(iconPath);
         if (fs.existsSync(resolved)) {
+            const stats = fs.statSync(resolved);
+            // Minecraft server icon MUST be 64x64 PNG. A proper one is typically 5-15KB.
+            // If the file is over 16KB, it's probably not resized and will bloat the response.
+            if (stats.size > 16 * 1024) {
+                log.warn(TAG, `Server icon is too large (${(stats.size / 1024).toFixed(1)}KB) — must be a 64x64 PNG (max ~16KB). Skipping icon.`);
+                return null;
+            }
             const base64 = fs.readFileSync(resolved, { encoding: 'base64' });
-            log.success(TAG, `Loaded server icon from ${resolved}`);
+            log.success(TAG, `Loaded server icon from ${resolved} (${(stats.size / 1024).toFixed(1)}KB)`);
             return `data:image/png;base64,${base64}`;
         }
     } catch (err) {
@@ -116,6 +94,7 @@ class FakeMCServer {
         this.server = null;
         this.isRunning = false;
         this.currentState = 'offline'; // 'offline' | 'suspended'
+        this.adIndex = 0; // Tracks which ad to show next (rotates per ping)
 
         // Load icon once
         this.favicon = loadIcon(this.mcConfig.icon || './server-icon.png');
@@ -137,7 +116,14 @@ class FakeMCServer {
     _buildStatusResponse(clientProtocol) {
         const stateMotd = this.motdConfig[this.currentState] || this.motdConfig.offline || {};
         const line1 = stateMotd.line1 || '§cServer Offline';
-        const line2 = stateMotd.line2 || '';
+
+        // Rotate through ads for line 2
+        const ads = stateMotd.ads || [];
+        let line2 = stateMotd.line2 || '';
+        if (ads.length > 0) {
+            line2 = ads[this.adIndex % ads.length];
+            this.adIndex = (this.adIndex + 1) % ads.length;
+        }
 
         const response = {
             version: {
@@ -194,51 +180,81 @@ class FakeMCServer {
             this.server = net.createServer();
 
             this.server.on('connection', (socket) => {
+                // Per-connection state: 0=handshake, 1=status, 2=login
+                let connState = 0;
+                let clientProtocol = 0;
                 let buffer = Buffer.alloc(0);
 
                 socket.on('data', (data) => {
                     buffer = Buffer.concat([buffer, data]);
 
-                    const baseBuffer = buffer.slice(buffer.indexOf(0x00) + 1, buffer.length);
-                    const hostnameLen = parsePacket.hostname(baseBuffer).length <= 10
-                        ? parsePacket.hostname(baseBuffer).length + 10
-                        : parsePacket.hostname(baseBuffer).length;
-
-                    if (buffer.length < hostnameLen && buffer.length > 10) return;
-
-                    try {
-                        const player = parsePacket.player(buffer, baseBuffer);
-                        const protocol = parsePacket.protocol(baseBuffer);
-                        const hostname = parsePacket.hostname(baseBuffer);
-                        const prt = parsePacket.port(baseBuffer);
-                        const state = parsePacket.state(baseBuffer);
-
-                        switch (state) {
-                            case 1: {
-                                // Status handshake — respond with server list info
-                                log.debug(TAG, `Handshake from ${hostname}:${prt} (protocol ${protocol})`);
-                                const statusResponse = this._buildStatusResponse(protocol);
-                                socket.write(encodePacket(statusResponse));
-                                break;
-                            }
-                            case 2: {
-                                // Login attempt — kick the player
-                                log.info(TAG, `${player || 'Unknown'} tried to connect to ${hostname}:${prt} — kicking (${this.currentState})`);
-                                const kickMsg = this._buildKickMessage();
-                                socket.write(encodePacket(kickMsg));
-                                break;
-                            }
-                            default: {
-                                // Ping response — echo back
-                                log.debug(TAG, 'Responding to ping');
-                                socket.write(buffer);
-                                break;
-                            }
+                    // Process all complete packets in the buffer
+                    while (buffer.length > 0) {
+                        // Read packet length (VarInt)
+                        let packetLength, lenBytes;
+                        try {
+                            const r = readVarInt(buffer, 0);
+                            packetLength = r.value;
+                            lenBytes = r.length;
+                        } catch {
+                            return; // Not enough data for length
                         }
 
-                        buffer = Buffer.alloc(0);
-                    } catch (err) {
-                        // Silently handle malformed packets
+                        // Wait for full packet
+                        if (buffer.length - lenBytes < packetLength) return;
+
+                        // Extract packet and advance buffer
+                        const packet = buffer.slice(lenBytes, lenBytes + packetLength);
+                        buffer = buffer.slice(lenBytes + packetLength);
+
+                        try {
+                            // Read packet ID (first VarInt in the packet)
+                            const { value: packetId, length: idLen } = readVarInt(packet, 0);
+                            const payload = packet.slice(idLen);
+
+                            if (connState === 0 && packetId === 0x00) {
+                                // ── Handshake ──────────────────────────
+                                // Fields: VarInt protocol, String address, UShort port, VarInt nextState
+                                const { value: protocol, length: protoLen } = readVarInt(payload, 0);
+                                clientProtocol = protocol;
+
+                                // Skip address string (VarInt length + string bytes)
+                                const { value: addrLen, length: addrLenSize } = readVarInt(payload, protoLen);
+                                const nextStateOffset = protoLen + addrLenSize + addrLen + 2; // +2 for UShort port
+                                const { value: nextState } = readVarInt(payload, nextStateOffset);
+
+                                connState = nextState;
+                                log.debug(TAG, `Handshake: protocol=${protocol}, nextState=${nextState}`);
+
+                            } else if (connState === 1 && packetId === 0x00) {
+                                // ── Status Request → send Status Response ──
+                                const response = this._buildStatusResponse(clientProtocol);
+                                const encoded = encodePacket(0x00, response);
+                                log.debug(TAG, `Status Request received — sending response (${encoded.length} bytes)`);
+                                socket.write(encoded);
+
+                            } else if (connState === 1 && packetId === 0x01) {
+                                // ── Ping → send Pong (echo exact packet back) ──
+                                const pong = Buffer.concat([writeVarInt(packet.length), packet]);
+                                log.debug(TAG, `Ping received — sending Pong (${pong.length} bytes)`);
+                                socket.write(pong);
+
+                            } else if (connState === 2 && packetId === 0x00) {
+                                // ── Login Start → kick the player ──
+                                let playerName = 'Unknown';
+                                try {
+                                    const { value: nameLen, length: nameLenSize } = readVarInt(payload, 0);
+                                    playerName = payload.slice(nameLenSize, nameLenSize + nameLen).toString('utf8');
+                                } catch { /* couldn't parse name */ }
+
+                                log.info(TAG, `${playerName} tried to connect — kicking (${this.currentState})`);
+                                const kickMsg = this._buildKickMessage();
+                                socket.write(encodePacket(0x00, kickMsg));
+                                socket.end();
+                            }
+                        } catch (err) {
+                            log.debug(TAG, `Packet parse error: ${err.message}`);
+                        }
                     }
                 });
 

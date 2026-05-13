@@ -10,20 +10,27 @@
   },
   "motd": {
     "offline": {
-      "line1": "§c§l⚠ {SERVER_NAME} — Offline",
-      "line2": "§7Check back soon!",
+      "line1": "§7This server is currently offline. §8| §bDetriot Cloud",
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
-      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.\n§7Please try again later."
+      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.\n§7Please try again later.",
+      "ads": [
+        "§e§lAD: §fGet 10% off on your first order! §7Use code §aDETRIOT10",
+        "§e§lAD: §fVisit §bdetriot.cloud §ffor premium hosting!",
+        "§e§lAD: §fNeed more RAM? Upgrade today at §bdetriot.cloud/plans"
+      ]
     },
     "suspended": {
-      "line1": "§4§l⛔ {SERVER_NAME} — Suspended",
-      "line2": "§cContact an administrator",
+      "line1": "§4§l⛔ Server Suspended §8| §bDetriot Cloud",
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
-      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.\n§cPlease contact an administrator."
+      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.\n§cPlease contact an administrator.",
+      "ads": [
+        "§e§lAD: §fGet 10% off on your first order! §7Use code §aDETRIOT10",
+        "§e§lAD: §fVisit §bdetriot.cloud §ffor premium hosting!"
+      ]
     }
   },
   "minecraft": {

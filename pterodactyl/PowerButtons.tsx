@@ -35,7 +35,7 @@ import { Dialog } from '@/components/elements/dialog';
 // ══════════════════════════════════════════════════════════════
 //  CONFIGURATION — Update this to your AlwaysMOTD instance URL
 // ══════════════════════════════════════════════════════════════
-const ALWAYSMOTD_URL = 'http://127.0.0.1:3100';
+const ALWAYSMOTD_URL = '/motd-api';
 // ══════════════════════════════════════════════════════════════
 
 interface PowerButtonProps {
