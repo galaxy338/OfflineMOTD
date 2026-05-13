@@ -115,26 +115,110 @@ fi
 cd "$INSTALL_DIR"
 
 # ─── Configure ──────────────────────────────────────────────
-if [ ! -f config.json ] || ! grep -q "panelUrl" config.json 2>/dev/null; then
+if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
     echo ""
     echo -e "  ${BOLD}Configuration${NC}"
     echo -e "  ${DIM}──────────────${NC}"
     echo ""
 
-    ask "Pterodactyl Panel URL (e.g., https://panel.example.com): "
-    read -r PANEL_URL
-
-    ask "Application API Key (Admin → Application API): "
-    read -r APP_KEY
-
-    ask "Client API Key (Account → API Credentials): "
-    read -r CLIENT_KEY
-
+    echo -e "  ${DIM}Modes:${NC}"
+    echo -e "    ${CYAN}standalone${NC}  — Single node, everything in one process (default)"
+    echo -e "    ${CYAN}controller${NC}  — Panel VPS, delegates to agents on nodes"
+    echo -e "    ${CYAN}agent${NC}       — Wings node, managed by controller"
+    echo ""
     ask "Deployment mode (standalone/controller/agent) [standalone]: "
     read -r MODE
     MODE=${MODE:-standalone}
 
-    cat > config.json << ENDCONFIG
+    # ─── Agent mode: only needs controller info ──────────────
+    if [ "$MODE" = "agent" ]; then
+        ask "Controller URL (e.g., http://panel-ip:3100): "
+        read -r CONTROLLER_URL
+
+        ask "Auth token (must match controller's token): "
+        read -r AUTH_TOKEN
+
+        ask "Pterodactyl Node ID (Admin → Nodes): "
+        read -r NODE_ID
+
+        ask "Agent port [3200]: "
+        read -r AGENT_PORT
+        AGENT_PORT=${AGENT_PORT:-3200}
+
+        cat > config.json << ENDCONFIG
+{
+  "mode": "agent",
+  "agent": {
+    "controllerUrl": "${CONTROLLER_URL}",
+    "authToken": "${AUTH_TOKEN}",
+    "nodeId": ${NODE_ID},
+    "agentPort": ${AGENT_PORT},
+    "pollIntervalMs": 15000
+  },
+  "motd": {
+    "offline": {
+      "line1": "§7This server is currently offline.",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.",
+      "ads": []
+    },
+    "suspended": {
+      "line1": "§4§l⛔ Server Suspended",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.",
+      "ads": []
+    },
+    "installing": {
+      "line1": "§e§l⏳ Installing...",
+      "line2": "§7{SERVER_NAME} is being set up. Please wait.",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§e§lServer Installing\n\n§7Please check back in a few minutes."
+    },
+    "starting": {
+      "line1": "§a§l▶ Starting...",
+      "line2": "§7{SERVER_NAME} is booting up. Almost ready!",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§a§lServer Starting\n\n§7Please wait a moment and try again."
+    }
+  },
+  "minecraft": {
+    "version": "1.21.5",
+    "protocol": 770,
+    "icon": "./server-icon.png"
+  },
+  "rateLimit": {
+    "maxConnections": 10,
+    "windowMs": 60000
+  }
+}
+ENDCONFIG
+
+    # ─── Controller or Standalone: needs Pterodactyl keys ────
+    else
+        ask "Pterodactyl Panel URL (e.g., https://panel.example.com): "
+        read -r PANEL_URL
+
+        ask "Application API Key (Admin → Application API): "
+        read -r APP_KEY
+
+        ask "Client API Key (Account → API Credentials): "
+        read -r CLIENT_KEY
+
+        AUTH_TOKEN=""
+        if [ "$MODE" = "controller" ]; then
+            ask "Auth token for agents (any secret string): "
+            read -r AUTH_TOKEN
+        fi
+
+        cat > config.json << ENDCONFIG
 {
   "mode": "${MODE}",
   "pterodactyl": {
@@ -190,17 +274,11 @@ if [ ! -f config.json ] || ! grep -q "panelUrl" config.json 2>/dev/null; then
     "windowMs": 60000
   },
   "controller": {
-    "authToken": "change-me-to-a-secret"
-  },
-  "agent": {
-    "controllerUrl": "http://panel-ip:3100",
-    "authToken": "change-me-to-a-secret",
-    "nodeId": 1,
-    "agentPort": 3200,
-    "pollIntervalMs": 15000
+    "authToken": "${AUTH_TOKEN}"
   }
 }
 ENDCONFIG
+    fi
 
     ok "Configuration saved"
 else
