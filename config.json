@@ -1,4 +1,5 @@
 {
+  "mode": "standalone",
   "pterodactyl": {
     "panelUrl": "https://panel.example.com",
     "apiKey": "YOUR_APPLICATION_API_KEY",
@@ -31,6 +32,22 @@
         "§e§lAD: §fGet 10% off on your first order! §7Use code §aDETRIOT10",
         "§e§lAD: §fVisit §bdetriot.cloud §ffor premium hosting!"
       ]
+    },
+    "installing": {
+      "line1": "§e§l⏳ Installing... §8| §bDetriot Cloud",
+      "line2": "§7{SERVER_NAME} is being set up. Please wait.",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§e§lServer Installing\n\n§7{SERVER_NAME} is currently being installed.\n§7Please check back in a few minutes."
+    },
+    "starting": {
+      "line1": "§a§l▶ Starting... §8| §bDetriot Cloud",
+      "line2": "§7{SERVER_NAME} is booting up. Almost ready!",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§a§lServer Starting\n\n§7{SERVER_NAME} is starting up.\n§7Please wait a moment and try again."
     }
   },
   "minecraft": {
@@ -41,5 +58,15 @@
   "rateLimit": {
     "maxConnections": 10,
     "windowMs": 60000
+  },
+  "controller": {
+    "authToken": "change-me-to-a-secret"
+  },
+  "agent": {
+    "controllerUrl": "http://panel-ip:3100",
+    "authToken": "change-me-to-a-secret",
+    "nodeId": 1,
+    "agentPort": 3200,
+    "pollIntervalMs": 15000
   }
 }

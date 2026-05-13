@@ -219,7 +219,7 @@ WantedBy=multi-user.target
 ### PM2
 
 ```bash
-pm2 start index.js --name alwaysmotd
+pm2 start index.js --name OfflineMOTD
 pm2 save && pm2 startup
 ```
 
@@ -229,6 +229,7 @@ pm2 save && pm2 startup
 
 - MC protocol based on [FakeMCServer](https://github.com/MrAdhit/FakeMCServer) by MrAdhit
 - [Pterodactyl Panel](https://pterodactyl.io)
+- Inspired by [AlwaysMOTD](https://builtbybit.com/resources/alwaysmotd-addon-pterodactyl.80177/) please support them too by buying their resource.
 
 ### Special Thanks
 

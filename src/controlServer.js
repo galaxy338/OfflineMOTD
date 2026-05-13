@@ -13,9 +13,14 @@
  *   POST /api/power/:name/:signal — Stop fake MC + send power signal (start/stop/restart/kill) to Pterodactyl
  *   GET  /api/status            — Get status of all servers
  *   GET  /api/status/:name      — Get status of a specific server
+ *
+ * Agent endpoints (controller mode):
+ *   POST /api/agent/register    — Agent registers itself
+ *   GET  /api/agent/servers     — Agent polls for its server list
  */
 
 const http = require('http');
+const https = require('https');
 const log = require('./logger');
 
 const TAG = 'Control';
@@ -28,9 +33,13 @@ class ControlServer {
      * @param {function} handlers.onPower - async (serverName: string, signal: string) => object — stop fake MC, send power signal
      * @param {function} handlers.getStatus - (serverName?: string) => object
      */
-    constructor(handlers) {
+    constructor(handlers, controllerConfig = {}) {
         this.handlers = handlers;
         this.server = null;
+        this.authToken = controllerConfig.authToken || '';
+
+        // Agent registry: { [nodeId]: { nodeId, ip, agentPort, lastSeen } }
+        this._agents = {};
     }
 
     /**
@@ -128,6 +137,89 @@ class ControlServer {
                         return;
                     }
 
+                    // ─── POST /api/agent/register ───────────────────────
+                    if (req.method === 'POST' && action === 'agent' && name === 'register') {
+                        let body = '';
+                        req.on('data', (chunk) => (body += chunk));
+                        await new Promise((r) => req.on('end', r));
+
+                        try {
+                            const data = JSON.parse(body);
+                            const agentIp = req.socket.remoteAddress || 'unknown';
+                            const nodeId = data.nodeId;
+                            const agentPort = data.agentPort || 3200;
+
+                            if (!nodeId) {
+                                this._sendJson(res, 400, { error: 'nodeId is required' });
+                                return;
+                            }
+
+                            // Validate auth token if set
+                            if (this.authToken) {
+                                const reqToken = (req.headers.authorization || '').replace('Bearer ', '');
+                                if (reqToken !== this.authToken) {
+                                    this._sendJson(res, 401, { error: 'Invalid auth token' });
+                                    return;
+                                }
+                            }
+
+                            this._agents[nodeId] = {
+                                nodeId,
+                                ip: agentIp.replace('::ffff:', ''),
+                                agentPort,
+                                lastSeen: Date.now(),
+                            };
+
+                            log.success(TAG, `Agent registered: Node ${nodeId} at ${agentIp}:${agentPort}`);
+                            this._sendJson(res, 200, { ok: true });
+                        } catch (err) {
+                            this._sendJson(res, 400, { error: 'Invalid JSON body' });
+                        }
+                        return;
+                    }
+
+                    // ─── GET /api/agent/servers?nodeId=N ─────────────────
+                    if (req.method === 'GET' && action === 'agent' && name === 'servers') {
+                        // Validate auth token if set
+                        if (this.authToken) {
+                            const reqToken = (req.headers.authorization || '').replace('Bearer ', '');
+                            if (reqToken !== this.authToken) {
+                                this._sendJson(res, 401, { error: 'Invalid auth token' });
+                                return;
+                            }
+                        }
+
+                        // Parse nodeId from query string
+                        const urlObj = new URL(req.url, `http://${req.headers.host}`);
+                        const nodeIdStr = urlObj.searchParams.get('nodeId') || extra;
+                        const nodeId = parseInt(nodeIdStr, 10);
+
+                        if (!nodeId) {
+                            this._sendJson(res, 400, { error: 'nodeId is required' });
+                            return;
+                        }
+
+                        // Update agent last seen
+                        if (this._agents[nodeId]) {
+                            this._agents[nodeId].lastSeen = Date.now();
+                        }
+
+                        // Get servers for this node via handler
+                        const servers = this.handlers.getServersForNode
+                            ? this.handlers.getServersForNode(nodeId)
+                            : [];
+                        this._sendJson(res, 200, { servers });
+                        return;
+                    }
+
+                    // ─── GET /api/agent/list ─────────────────────────────
+                    if (req.method === 'GET' && action === 'agent' && name === 'list') {
+                        this._sendJson(res, 200, {
+                            agents: Object.values(this._agents),
+                        });
+                        return;
+                    }
+
                     // ─── 404 ────────────────────────────────────────────
                     this._sendJson(res, 404, {
                         error: 'Not found',
@@ -136,6 +228,9 @@ class ControlServer {
                             'POST /api/start[/:serverName]',
                             'POST /api/power/:serverName/:signal  (signal: start|stop|restart|kill)',
                             'GET  /api/status[/:serverName]',
+                            'POST /api/agent/register             (agent mode)',
+                            'GET  /api/agent/servers?nodeId=N     (agent mode)',
+                            'GET  /api/agent/list                 (list agents)',
                         ],
                     });
                 } catch (err) {
@@ -173,6 +268,56 @@ class ControlServer {
             } else {
                 resolve();
             }
+        });
+    }
+
+    /**
+     * Get an agent's connection info by node ID
+     */
+    getAgent(nodeId) {
+        return this._agents[nodeId] || null;
+    }
+
+    /**
+     * Tell an agent to release a specific server's port
+     */
+    async releaseOnAgent(nodeId, uuid) {
+        const agent = this._agents[nodeId];
+        if (!agent) {
+            log.warn(TAG, `No agent registered for node ${nodeId}`);
+            return false;
+        }
+
+        const url = `http://${agent.ip}:${agent.agentPort}/agent/release/${encodeURIComponent(uuid)}`;
+        log.info(TAG, `Telling agent (node ${nodeId}) to release ${uuid}...`);
+
+        return new Promise((resolve) => {
+            const transport = http;
+            const req = transport.request(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }, (res) => {
+                let body = '';
+                res.on('data', (c) => (body += c));
+                res.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        log.success(TAG, `Agent (node ${nodeId}) responded: released=${data.released}`);
+                        resolve(true);
+                    } catch {
+                        resolve(false);
+                    }
+                });
+            });
+            req.on('error', (err) => {
+                log.error(TAG, `Failed to reach agent (node ${nodeId}): ${err.message}`);
+                resolve(false);
+            });
+            req.setTimeout(5000, () => req.destroy());
+            req.end();
         });
     }
 }

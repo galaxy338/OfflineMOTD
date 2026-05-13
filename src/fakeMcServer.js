@@ -109,10 +109,11 @@ class FakeMCServer {
 
     /**
      * Set the current server state (changes the MOTD displayed)
-     * @param {'offline'|'suspended'} state
+     * @param {'offline'|'suspended'|'installing'|'starting'} state
      */
     setState(state) {
-        if (state !== 'offline' && state !== 'suspended') return;
+        const valid = ['offline', 'suspended', 'installing', 'starting'];
+        if (!valid.includes(state)) return;
         this.currentState = state;
         log.info(TAG, `MOTD state updated to: ${state.toUpperCase()}`);
     }

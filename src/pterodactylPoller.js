@@ -246,6 +246,8 @@ class PterodactylPoller {
         // Check power state via client API (uses short identifier)
         const powerState = await this.checkPowerState(server.identifier);
         if (powerState === 'running') return 'online';
+        if (powerState === 'starting') return 'starting';
+        if (powerState === 'installing') return 'installing';
 
         return 'offline';
     }
