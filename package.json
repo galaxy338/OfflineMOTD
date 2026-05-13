@@ -1,5 +1,5 @@
 {
-  "name": "always-motd",
+  "name": "offline-motd",
   "version": "1.0.0",
   "description": "Pterodactyl-aware fake Minecraft MOTD server — shows custom MOTD when real server is offline/suspended",
   "main": "index.js",

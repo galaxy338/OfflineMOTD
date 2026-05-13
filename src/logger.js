@@ -1,5 +1,5 @@
 /**
- * AlwaysMOTD — Logging System
+ * OfflineMOTD — Logging System
  * 
  * Provides colored console logging with [LEVEL] prefixed format
  * and an ASCII art startup banner.
@@ -30,12 +30,11 @@ const C = {
 
 // ─── ASCII Art Banner ───────────────────────────────────────────────────────
 const BANNER = `
-${C.cyan}${C.bold}    ___    __                          __  _______  ______ ____ 
-${C.cyan}   /   |  / /      ______ ___  _______  /  |/  / __ \\/_  __// __ \\
-${C.blue}  / /| | / / | /| / / __ '/ / / / ___/ / /|_/ / / / / / /  / / / /
-${C.blue} / ___ |/ /__| |/ |/ / /_/ / /_/ (__  )/ /  / / /_/ / / /  / /_/ / 
-${C.magenta}/_/  |_/_____/__/|__/\\__,_/\\__, /____/_/  /_/\\____/ /_/  /_____/  
-${C.magenta}                          /____/                                   
+${C.cyan}${C.bold}   ____  ________  _            __  _______  ______ ____ 
+${C.cyan}  / __ \\/ __/ __/ (_)___  ___  /  |/  / __ \\/_  __// __ \\
+${C.blue} / / / / /_/ /_/ / / __ \\/ _ \\/ /|_/ / / / / / /  / / / /
+${C.blue}/ /_/ / __/ __/ / / / / /  __/ /  / / /_/ / / /  / /_/ / 
+${C.magenta}\\____/_/ /_/ /_/_/_/ /_/\\___/_/  /_/\\____/ /_/  /_____/  
 ${C.reset}
 ${C.gray}  Pterodactyl-Aware Fake Minecraft MOTD Server${C.reset}
 ${C.gray}  ─────────────────────────────────────────────${C.reset}

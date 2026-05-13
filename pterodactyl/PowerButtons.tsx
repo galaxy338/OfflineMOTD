@@ -1,15 +1,15 @@
 /**
- * AlwaysMOTD — Modified Pterodactyl PowerButtons.tsx
+ * OfflineMOTD — Modified Pterodactyl PowerButtons.tsx
  * 
  * This replaces the original PowerButtons.tsx in the Pterodactyl panel source:
  *   resources/scripts/components/server/console/PowerButtons.tsx
  * 
  * WHAT IT CHANGES:
  *   When the user clicks "Start", instead of sending the start command
- *   directly via WebSocket, it first calls AlwaysMOTD's API:
+ *   directly via WebSocket, it first calls OfflineMOTD's API:
  *     POST http://{ALWAYSMOTD_URL}/api/power/{serverUuid}/start
  * 
- *   AlwaysMOTD then:
+ *   OfflineMOTD then:
  *     1. Stops the fake MOTD server (releases the port)
  *     2. Sends the actual start signal to Pterodactyl via Client API
  * 
@@ -18,7 +18,7 @@
  * HOW TO INSTALL:
  *   1. Replace the original file at:
  *      pterodactyl/panel/resources/scripts/components/server/console/PowerButtons.tsx
- *   2. Update ALWAYSMOTD_URL below to point to your AlwaysMOTD instance
+ *   2. Update ALWAYSMOTD_URL below to point to your OfflineMOTD instance
  *   3. Rebuild the panel frontend:
  *      cd /var/www/pterodactyl
  *      yarn install
@@ -33,7 +33,7 @@ import { PowerAction } from '@/components/server/console/ServerConsoleContainer'
 import { Dialog } from '@/components/elements/dialog';
 
 // ══════════════════════════════════════════════════════════════
-//  CONFIGURATION — Update this to your AlwaysMOTD instance URL
+//  CONFIGURATION — Update this to your OfflineMOTD instance URL
 // ══════════════════════════════════════════════════════════════
 const ALWAYSMOTD_URL = '/motd-api';
 // ══════════════════════════════════════════════════════════════
@@ -62,7 +62,7 @@ export default ({ className }: PowerButtonProps) => {
         }
 
         // ─── ALWAYSMOTD INTERCEPT ───────────────────────────────
-        // When "Start" is clicked, call AlwaysMOTD to release the
+        // When "Start" is clicked, call OfflineMOTD to release the
         // port and start the server via API instead of WebSocket
         if (action === 'start' && uuid) {
             setStarting(true);
@@ -72,12 +72,12 @@ export default ({ className }: PowerButtonProps) => {
             })
                 .then((res) => res.json())
                 .then((data) => {
-                    console.log('[AlwaysMOTD] Server start initiated:', data);
+                    console.log('[OfflineMOTD] Server start initiated:', data);
                     setStarting(false);
                 })
                 .catch((err) => {
-                    console.error('[AlwaysMOTD] Failed to reach AlwaysMOTD, falling back to direct start:', err);
-                    // Fallback: start directly via WebSocket if AlwaysMOTD is unreachable
+                    console.error('[OfflineMOTD] Failed to reach OfflineMOTD, falling back to direct start:', err);
+                    // Fallback: start directly via WebSocket if OfflineMOTD is unreachable
                     if (instance) {
                         instance.send('set state', 'start');
                     }

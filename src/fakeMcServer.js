@@ -1,5 +1,5 @@
 /**
- * AlwaysMOTD — Fake Minecraft Server
+ * OfflineMOTD — Fake Minecraft Server
  * 
  * Implements the Minecraft protocol handshake, status ping, and login kick.
  * Based on https://github.com/MrAdhit/FakeMCServer by MrAdhit.

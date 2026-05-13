@@ -1,5 +1,5 @@
 /**
- * AlwaysMOTD — Main Orchestrator
+ * OfflineMOTD — Main Orchestrator
  * 
  * Auto-discovers ALL servers from the Pterodactyl Panel API.
  * No manual server configuration needed.
@@ -319,7 +319,7 @@ async function main() {
         log.separator();
         await poller.startPolling();
         log.separator();
-        log.success(TAG, 'AlwaysMOTD is fully operational!');
+        log.success(TAG, 'OfflineMOTD is fully operational!');
         log.info(TAG, 'All servers are auto-discovered from Pterodactyl. No manual config needed.');
         log.separator();
     } catch (err) {

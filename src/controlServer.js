@@ -1,5 +1,5 @@
 /**
- * AlwaysMOTD — HTTP Control Server
+ * OfflineMOTD — HTTP Control Server
  * 
  * Exposes a simple HTTP API to control fake Minecraft servers.
  * Supports multi-server: stop/start individual servers by name or all at once.

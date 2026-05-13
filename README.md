@@ -1,4 +1,4 @@
-# AlwaysMOTD
+# OfflineMOTD
 
 **Pterodactyl-aware fake Minecraft MOTD server** — automatically discovers ALL your servers from the Pterodactyl Panel API. When a server is offline or suspended, it shows a custom MOTD with **rotating ads** on that port. When the server starts, it releases the port seamlessly.
 
@@ -41,7 +41,7 @@ Edit `config.json` — you only need your Pterodactyl credentials:
 }
 ```
 
-That's it. No server list needed — AlwaysMOTD discovers everything automatically.
+That's it. No server list needed — OfflineMOTD discovers everything automatically.
 
 ### 3. Get API Keys
 
@@ -165,9 +165,9 @@ curl http://localhost:3100/api/status/Survival
 
 ## Pterodactyl Panel Modification
 
-The included `pterodactyl/PowerButtons.tsx` modifies the panel's Start button so it calls AlwaysMOTD first:
+The included `pterodactyl/PowerButtons.tsx` modifies the panel's Start button so it calls OfflineMOTD first:
 
-**User clicks Start → AlwaysMOTD stops MOTD → releases port → starts real server via API**
+**User clicks Start → OfflineMOTD stops MOTD → releases port → starts real server via API**
 
 ### Installation
 
@@ -192,7 +192,7 @@ cd /var/www/pterodactyl
 NODE_OPTIONS=--openssl-legacy-provider yarn build:production
 ```
 
-If AlwaysMOTD is unreachable, the Start button falls back to normal behavior.
+If OfflineMOTD is unreachable, the Start button falls back to normal behavior.
 
 ---
 
@@ -202,7 +202,7 @@ If AlwaysMOTD is unreachable, the Start button falls back to normal behavior.
 
 ```ini
 [Unit]
-Description=AlwaysMOTD
+Description=OfflineMOTD
 After=network.target
 
 [Service]
@@ -229,6 +229,11 @@ pm2 save && pm2 startup
 
 - MC protocol based on [FakeMCServer](https://github.com/MrAdhit/FakeMCServer) by MrAdhit
 - [Pterodactyl Panel](https://pterodactyl.io)
+
+### Special Thanks
+
+- 🧠 My brain — for the idea and the persistence to make it work
+- 🤖 Claude Opus 4.6 — AI pair programmer that helped build this
 
 ## License
 

@@ -1,5 +1,5 @@
 /**
- * AlwaysMOTD — Pterodactyl API Poller & Power Controller
+ * OfflineMOTD — Pterodactyl API Poller & Power Controller
  * 
  * Auto-discovers ALL servers from the Pterodactyl Panel API.
  * No manual server configuration needed — it fetches the full server list
