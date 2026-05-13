@@ -1,0 +1,34 @@
+{
+  "pterodactyl": {
+    "panelUrl": "https://panel.example.com",
+    "apiKey": "YOUR_APPLICATION_API_KEY",
+    "clientApiKey": "YOUR_CLIENT_API_KEY",
+    "pollIntervalMs": 60000
+  },
+  "http": {
+    "port": 3100
+  },
+  "motd": {
+    "offline": {
+      "line1": "§c§l⚠ {SERVER_NAME} — Offline",
+      "line2": "§7Check back soon!",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.\n§7Please try again later."
+    },
+    "suspended": {
+      "line1": "§4§l⛔ {SERVER_NAME} — Suspended",
+      "line2": "§cContact an administrator",
+      "maxPlayers": 0,
+      "onlinePlayers": 0,
+      "playerSample": [],
+      "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.\n§cPlease contact an administrator."
+    }
+  },
+  "minecraft": {
+    "version": "1.21.5",
+    "protocol": 770,
+    "icon": "./server-icon.png"
+  }
+}

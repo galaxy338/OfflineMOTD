@@ -1,0 +1,19 @@
+{
+  "name": "always-motd",
+  "version": "1.0.0",
+  "description": "Pterodactyl-aware fake Minecraft MOTD server — shows custom MOTD when real server is offline/suspended",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "minecraft",
+    "motd",
+    "pterodactyl",
+    "fake-server",
+    "server-list"
+  ],
+  "author": "",
+  "license": "GPL-3.0"
+}
