@@ -96,6 +96,13 @@ class FakeMCServer {
         this.currentState = 'offline'; // 'offline' | 'suspended'
         this.adIndex = 0; // Tracks which ad to show next (rotates per ping)
 
+        // Rate limiting: track connections per IP
+        this.rateLimit = config.rateLimit || {};
+        this.rateLimitMax = this.rateLimit.maxConnections || 10;     // max connections per window
+        this.rateLimitWindow = this.rateLimit.windowMs || 60000;     // window in ms (default 60s)
+        this._ipHits = new Map(); // IP → [timestamp, timestamp, ...]
+        this._rateLimitCleanup = null;
+
         // Load icon once
         this.favicon = loadIcon(this.mcConfig.icon || './server-icon.png');
     }
@@ -179,7 +186,31 @@ class FakeMCServer {
 
             this.server = net.createServer();
 
+            // Clean up expired rate limit entries periodically
+            this._rateLimitCleanup = setInterval(() => {
+                const now = Date.now();
+                for (const [ip, hits] of this._ipHits) {
+                    const valid = hits.filter((t) => now - t < this.rateLimitWindow);
+                    if (valid.length === 0) this._ipHits.delete(ip);
+                    else this._ipHits.set(ip, valid);
+                }
+            }, this.rateLimitWindow);
+            this._rateLimitCleanup.unref(); // Don't prevent process exit
+
             this.server.on('connection', (socket) => {
+                // ── Rate limiting ──────────────────────────────
+                const ip = socket.remoteAddress || 'unknown';
+                const now = Date.now();
+                const hits = (this._ipHits.get(ip) || []).filter((t) => now - t < this.rateLimitWindow);
+                hits.push(now);
+                this._ipHits.set(ip, hits);
+
+                if (hits.length > this.rateLimitMax) {
+                    log.debug(TAG, `Rate limited ${ip} (${hits.length}/${this.rateLimitMax} in ${this.rateLimitWindow / 1000}s)`);
+                    socket.destroy();
+                    return;
+                }
+
                 // Per-connection state: 0=handshake, 1=status, 2=login
                 let connState = 0;
                 let clientProtocol = 0;
@@ -296,6 +327,8 @@ class FakeMCServer {
             this.server.close(() => {
                 this.isRunning = false;
                 this.server = null;
+                if (this._rateLimitCleanup) clearInterval(this._rateLimitCleanup);
+                this._ipHits.clear();
                 log.success(TAG, 'Fake Minecraft server stopped — port released');
                 resolve();
             });
