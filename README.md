@@ -4,6 +4,8 @@
 
 **Zero server configuration needed** — just provide your Pterodactyl API keys and it handles everything.
 
+<img width="619" height="92" alt="image" src="https://github.com/user-attachments/assets/c703fabd-7a71-41a9-8747-7edea7516954" />
+
 ---
 
 ## Features
