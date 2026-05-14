@@ -111,7 +111,12 @@ class ControlServer {
 
                         try {
                             const data = JSON.parse(body);
-                            const agentIp = req.socket.remoteAddress || 'unknown';
+                            // Use X-Real-IP (from nginx), or agent-provided IP, or socket
+                            const agentIp = req.headers['x-real-ip']
+                                || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+                                || data.agentIp
+                                || req.socket.remoteAddress
+                                || 'unknown';
                             const nodeId = data.nodeId;
                             const agentPort = data.agentPort || 3200;
 
