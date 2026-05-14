@@ -7,7 +7,7 @@
  * WHAT IT CHANGES:
  *   When the user clicks "Start", instead of sending the start command
  *   directly via WebSocket, it first calls OfflineMOTD's API:
- *     POST http://{ALWAYSMOTD_URL}/api/power/{serverUuid}/start
+ *     POST http://{OFFLINEMOTD_URL}/api/power/{serverUuid}/start
  * 
  *   OfflineMOTD then:
  *     1. Stops the fake MOTD server (releases the port)
@@ -18,7 +18,7 @@
  * HOW TO INSTALL:
  *   1. Replace the original file at:
  *      pterodactyl/panel/resources/scripts/components/server/console/PowerButtons.tsx
- *   2. Update ALWAYSMOTD_URL below to point to your OfflineMOTD instance
+ *   2. Update OFFLINEMOTD_URL below to point to your OfflineMOTD instance
  *   3. Rebuild the panel frontend:
  *      cd /var/www/pterodactyl
  *      yarn install
@@ -35,7 +35,7 @@ import { Dialog } from '@/components/elements/dialog';
 // ══════════════════════════════════════════════════════════════
 //  CONFIGURATION — Update this to your OfflineMOTD instance URL
 // ══════════════════════════════════════════════════════════════
-const ALWAYSMOTD_URL = '/motd-api';
+const OFFLINEMOTD_URL = '/motd-api';
 // ══════════════════════════════════════════════════════════════
 
 interface PowerButtonProps {
@@ -61,12 +61,12 @@ export default ({ className }: PowerButtonProps) => {
             return setOpen(true);
         }
 
-        // ─── ALWAYSMOTD INTERCEPT ───────────────────────────────
+        // ─── OFFLINEMOTD INTERCEPT ───────────────────────────────
         // When "Start" is clicked, call OfflineMOTD to release the
         // port and start the server via API instead of WebSocket
         if (action === 'start' && uuid) {
             setStarting(true);
-            fetch(`${ALWAYSMOTD_URL}/api/power/${uuid}/start`, {
+            fetch(`${OFFLINEMOTD_URL}/api/power/${uuid}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
@@ -85,7 +85,7 @@ export default ({ className }: PowerButtonProps) => {
                 });
             return;
         }
-        // ─── END ALWAYSMOTD INTERCEPT ───────────────────────────
+        // ─── END OFFLINEMOTD INTERCEPT ───────────────────────────
 
         if (instance) {
             setOpen(false);
