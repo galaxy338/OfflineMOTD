@@ -134,6 +134,9 @@ if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
         ask "Pterodactyl Node ID (Admin → Nodes): "
         read -r NODE_ID
 
+        ask "This node's public IP (so controller can reach this agent): "
+        read -r AGENT_IP
+
         ask "Agent port [3200]: "
         read -r AGENT_PORT
         AGENT_PORT=${AGENT_PORT:-3200}
@@ -145,6 +148,7 @@ if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
     "controllerUrl": "${CONTROLLER_URL}",
     "authToken": "${AUTH_TOKEN}",
     "nodeId": ${NODE_ID},
+    "agentIp": "${AGENT_IP}",
     "agentPort": ${AGENT_PORT},
     "pollIntervalMs": 10000
   },

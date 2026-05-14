@@ -29,6 +29,7 @@ class AgentClient {
         this.nodeId = agentConfig.nodeId;
         this.pollInterval = agentConfig.pollIntervalMs || 15000;
         this.agentPort = agentConfig.agentPort || 3200;
+        this.agentIp = agentConfig.agentIp || '';
         this.fullConfig = fullConfig;
 
         this._timer = null;
@@ -86,13 +87,16 @@ class AgentClient {
 
     async register() {
         log.info(TAG, `Registering with controller at ${this.controllerUrl}...`);
-        log.info(TAG, `  Node ID: ${this.nodeId}, Agent port: ${this.agentPort}`);
+        log.info(TAG, `  Node ID: ${this.nodeId}, Agent IP: ${this.agentIp || 'auto'}, Agent port: ${this.agentPort}`);
 
         try {
-            const res = await this._request('POST', `${this.controllerUrl}/api/agent/register`, {
+            const body = {
                 nodeId: this.nodeId,
                 agentPort: this.agentPort,
-            });
+            };
+            if (this.agentIp) body.agentIp = this.agentIp;
+
+            const res = await this._request('POST', `${this.controllerUrl}/api/agent/register`, body);
 
             if (res.status === 200 && res.data?.ok) {
                 log.success(TAG, 'Registered with controller');

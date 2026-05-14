@@ -12,7 +12,7 @@
   "motd": {
     "offline": {
       "line1": "§7This server is currently offline. §8| §bDetriot Cloud",
-      "versionName": "§7Offline",
+      "versionName": "§c§lOffline!",
       "versionProtocol": -1,
       "maxPlayers": 0,
       "onlinePlayers": 0,
