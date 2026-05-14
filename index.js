@@ -140,9 +140,9 @@ async function runStandalone(config) {
         const port = serverInfo.port;
         instance.serverInfo = serverInfo;
 
-        if (newState === 'online') {
+        if (newState === 'online' || newState === 'starting' || newState === 'installing') {
             if (fakeMC.isRunning) {
-                log.server(TAG, `[${name}] Real server ONLINE — stopping fake MC on port ${port}...`);
+                log.server(TAG, `[${name}] ${newState.toUpperCase()} — releasing port ${port} (stopping fake MC)...`);
                 await fakeMC.stop();
             }
         } else {

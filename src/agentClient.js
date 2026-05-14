@@ -153,10 +153,10 @@ class AgentClient {
     async _syncServer(srv) {
         const { uuid, name, port, state, motd } = srv;
 
-        if (state === 'online') {
-            // Server is online — stop FakeMC if running
+        if (state === 'online' || state === 'starting' || state === 'installing') {
+            // Server needs the port — stop FakeMC if running
             if (this._instances[uuid]?.fakeMC?.isRunning) {
-                log.server(TAG, `[${name}] Online — stopping fake MC on port ${port}`);
+                log.server(TAG, `[${name}] ${state.toUpperCase()} — releasing port ${port}`);
                 await this._instances[uuid].fakeMC.stop();
             }
             return;
