@@ -153,7 +153,7 @@ if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
     "authToken": "${AUTH_TOKEN}",
     "nodeId": ${NODE_ID},
     "agentPort": ${AGENT_PORT},
-    "pollIntervalMs": 15000
+    "pollIntervalMs": 10000
   },
   "motd": {
     "offline": {
@@ -225,7 +225,7 @@ ENDCONFIG
     "panelUrl": "${PANEL_URL}",
     "apiKey": "${APP_KEY}",
     "clientApiKey": "${CLIENT_KEY}",
-    "pollIntervalMs": 60000
+    "pollIntervalMs": 10000
   },
   "http": {
     "port": 3100

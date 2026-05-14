@@ -42,7 +42,7 @@ function loadConfig() {
                 panelUrl: 'https://panel.example.com',
                 apiKey: 'YOUR_APPLICATION_API_KEY',
                 clientApiKey: 'YOUR_CLIENT_API_KEY',
-                pollIntervalMs: 60000,
+                pollIntervalMs: 10000,
             },
             http: { port: 3100 },
             motd: {
