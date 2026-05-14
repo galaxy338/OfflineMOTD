@@ -273,10 +273,11 @@ class PterodactylPoller {
                     const oldState = this._lastStates[uuid] || 'INIT';
                     log.api(TAG, `[${server.name}] ${oldState} → ${newState.toUpperCase()}`);
                     this._lastStates[uuid] = newState;
+                }
 
-                    if (this.onStatusChange) {
-                        this.onStatusChange(uuid, newState, server);
-                    }
+                // Always reconcile — ensures FakeMC restarts after port release
+                if (this.onStatusChange) {
+                    this.onStatusChange(uuid, newState, server);
                 }
             }
         } catch (err) {

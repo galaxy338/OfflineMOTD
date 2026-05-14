@@ -127,7 +127,7 @@ async function runStandalone(config) {
             rateLimit: config.rateLimit || {},
         });
 
-        instances[key] = { fakeMC, serverInfo, manualStop: false };
+        instances[key] = { fakeMC, serverInfo };
         log.server(TAG, `Registered: ${serverInfo.name} (${serverInfo.uuid}) → port ${serverInfo.port}`);
     }
 
@@ -146,11 +146,6 @@ async function runStandalone(config) {
                 await fakeMC.stop();
             }
         } else {
-            if (instance.manualStop) {
-                log.debug(TAG, `[${name}] Skipping auto-start (manual stop active)`);
-                instance.manualStop = false;
-                return;
-            }
             fakeMC.setState(newState);
             if (!fakeMC.isRunning) {
                 log.server(TAG, `[${name}] ${newState.toUpperCase()} — starting fake MC on port ${port}...`);
@@ -181,11 +176,9 @@ async function runStandalone(config) {
             if (serverQuery) {
                 const resolved = resolveServer(serverQuery);
                 if (!resolved) throw new Error(`Server '${serverQuery}' not found`);
-                resolved.instance.manualStop = true;
                 await resolved.instance.fakeMC.stop();
             } else {
                 for (const instance of Object.values(instances)) {
-                    instance.manualStop = true;
                     await instance.fakeMC.stop();
                 }
             }
@@ -195,13 +188,11 @@ async function runStandalone(config) {
                 const resolved = resolveServer(serverQuery);
                 if (!resolved) throw new Error(`Server '${serverQuery}' not found`);
                 const inst = resolved.instance;
-                inst.manualStop = false;
                 const lastState = poller.getLastState(resolved.uuid);
                 inst.fakeMC.setState(lastState === 'suspended' ? 'suspended' : 'offline');
                 if (!inst.fakeMC.isRunning) await inst.fakeMC.start(inst.serverInfo.port);
             } else {
                 for (const [uuid, inst] of Object.entries(instances)) {
-                    inst.manualStop = false;
                     const lastState = poller.getLastState(uuid);
                     inst.fakeMC.setState(lastState === 'suspended' ? 'suspended' : 'offline');
                     if (!inst.fakeMC.isRunning) {
@@ -242,7 +233,6 @@ async function runStandalone(config) {
             if (!resolved) throw new Error(`Server '${serverQuery}' not found`);
             const inst = resolved.instance;
             const name = inst.serverInfo.name;
-            inst.manualStop = true;
             if (inst.fakeMC.isRunning) {
                 await inst.fakeMC.stop();
                 log.info(TAG, `[${name}] Port ${inst.serverInfo.port} released`);
