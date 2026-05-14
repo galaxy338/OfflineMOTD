@@ -81,40 +81,6 @@ class ControlServer {
                 const extra = decodeURIComponent(segments[3] || '');
 
                 try {
-                    // ─── POST /api/stop[/:name] ─────────────────────────
-                    if (req.method === 'POST' && action === 'stop') {
-                        if (name) {
-                            log.info(TAG, `Stop request for server: ${name}`);
-                        } else {
-                            log.info(TAG, 'Stop request for ALL servers');
-                        }
-                        await this.handlers.onStop(name || null);
-                        this._sendJson(res, 200, {
-                            success: true,
-                            message: name
-                                ? `Fake MC server '${name}' stopped, port released`
-                                : 'All fake MC servers stopped, ports released',
-                        });
-                        return;
-                    }
-
-                    // ─── POST /api/start[/:name] ────────────────────────
-                    if (req.method === 'POST' && action === 'start') {
-                        if (name) {
-                            log.info(TAG, `Start request for server: ${name}`);
-                        } else {
-                            log.info(TAG, 'Start request for ALL servers');
-                        }
-                        await this.handlers.onStart(name || null);
-                        this._sendJson(res, 200, {
-                            success: true,
-                            message: name
-                                ? `Fake MC server '${name}' started`
-                                : 'All fake MC servers started',
-                        });
-                        return;
-                    }
-
                     // ─── GET /api/status[/:name] ────────────────────────
                     if (req.method === 'GET' && action === 'status') {
                         const status = this.handlers.getStatus(name || null);
@@ -224,8 +190,6 @@ class ControlServer {
                     this._sendJson(res, 404, {
                         error: 'Not found',
                         endpoints: [
-                            'POST /api/stop[/:serverName]',
-                            'POST /api/start[/:serverName]',
                             'POST /api/power/:serverName/:signal  (signal: start|stop|restart|kill)',
                             'GET  /api/status[/:serverName]',
                             'POST /api/agent/register             (agent mode)',

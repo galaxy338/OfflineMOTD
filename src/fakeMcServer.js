@@ -133,10 +133,16 @@ class FakeMCServer {
             this.adIndex = (this.adIndex + 1) % ads.length;
         }
 
+        // Per-state version override (e.g. "Suspended ✖" with protocol -1 shows red X)
+        const versionName = stateMotd.versionName || this.mcConfig.version || '1.21.5';
+        const versionProtocol = stateMotd.versionProtocol !== undefined
+            ? stateMotd.versionProtocol
+            : (clientProtocol || this.mcConfig.protocol || 770);
+
         const response = {
             version: {
-                name: this.mcConfig.version || '1.21.5',
-                protocol: clientProtocol || this.mcConfig.protocol || 770,
+                name: versionName,
+                protocol: versionProtocol,
             },
             players: {
                 max: stateMotd.maxPlayers ?? 0,

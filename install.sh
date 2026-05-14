@@ -10,7 +10,8 @@
 #    2. Clones the repo to /opt/offlinemotd
 #    3. Creates a default config.json
 #    4. Sets up a systemd service
-#    5. Starts the service
+#    5. Optionally patches the Pterodactyl panel Start button
+#    6. Starts the service
 # ──────────────────────────────────────────────────────────────
 
 set -e
@@ -28,13 +29,14 @@ NC='\033[0m'
 INSTALL_DIR="/opt/offlinemotd"
 SERVICE_NAME="offlinemotd"
 REPO_URL="https://github.com/galaxy338/OfflineMOTD.git"
+PANEL_DIR="/var/www/pterodactyl"
 
 # ─── Banner ──────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}   ╔═╗┌─┐┌─┐┬  ┬┌┐┌┌─┐╔╦╗╔═╗╔╦╗╔╦╗${NC}"
 echo -e "${CYAN}   ║ ║├┤ ├┤ │  ││││├┤ ║║║║ ║ ║  ║║${NC}"
 echo -e "${BLUE}   ╚═╝└  └  ┴─┘┴┘└┘└─┘╩ ╩╚═╝ ╩ ═╩╝${NC}"
-echo -e "${DIM}   Installer v1.0${NC}"
+echo -e "${DIM}   Installer v1.1${NC}"
 echo -e "${DIM}   ─────────────────────────────────────${NC}"
 echo ""
 
@@ -87,21 +89,11 @@ if [ -d "$INSTALL_DIR" ]; then
     if [[ "$DO_UPDATE" =~ ^[Yy]$ ]]; then
         info "Updating..."
         cd "$INSTALL_DIR"
-        # Preserve config
-        if [ -f config.json ]; then
-            cp config.json config.json.bak
-        fi
-        if [ -f server-icon.png ]; then
-            cp server-icon.png server-icon.png.bak
-        fi
+        if [ -f config.json ]; then cp config.json config.json.bak; fi
+        if [ -f server-icon.png ]; then cp server-icon.png server-icon.png.bak; fi
         git pull origin main > /dev/null 2>&1
-        # Restore config
-        if [ -f config.json.bak ]; then
-            mv config.json.bak config.json
-        fi
-        if [ -f server-icon.png.bak ]; then
-            mv server-icon.png.bak server-icon.png
-        fi
+        if [ -f config.json.bak ]; then mv config.json.bak config.json; fi
+        if [ -f server-icon.png.bak ]; then mv server-icon.png.bak server-icon.png; fi
         ok "Updated to latest version"
     else
         info "Skipping update"
@@ -132,7 +124,7 @@ if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
 
     # ─── Agent mode: only needs controller info ──────────────
     if [ "$MODE" = "agent" ]; then
-        ask "Controller URL (e.g., http://panel-ip:3100): "
+        ask "Controller URL (e.g., https://panel.example.com/motd-api): "
         read -r CONTROLLER_URL
 
         ask "Auth token (must match controller's token): "
@@ -158,35 +150,27 @@ if [ ! -f config.json ] || ! grep -q "mode" config.json 2>/dev/null; then
   "motd": {
     "offline": {
       "line1": "§7This server is currently offline.",
+      "versionName": "§7Offline",
+      "versionProtocol": -1,
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
       "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.",
-      "ads": []
+      "ads": [
+        "§e§lAD: §fVisit our website for more info!"
+      ]
     },
     "suspended": {
       "line1": "§4§l⛔ Server Suspended",
+      "versionName": "§c§lSuspended ✖",
+      "versionProtocol": -1,
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
       "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.",
-      "ads": []
-    },
-    "installing": {
-      "line1": "§e§l⏳ Installing...",
-      "line2": "§7{SERVER_NAME} is being set up. Please wait.",
-      "maxPlayers": 0,
-      "onlinePlayers": 0,
-      "playerSample": [],
-      "kickMessage": "§e§lServer Installing\n\n§7Please check back in a few minutes."
-    },
-    "starting": {
-      "line1": "§a§l▶ Starting...",
-      "line2": "§7{SERVER_NAME} is booting up. Almost ready!",
-      "maxPlayers": 0,
-      "onlinePlayers": 0,
-      "playerSample": [],
-      "kickMessage": "§a§lServer Starting\n\n§7Please wait a moment and try again."
+      "ads": [
+        "§e§lAD: §fContact support for assistance"
+      ]
     }
   },
   "minecraft": {
@@ -233,35 +217,27 @@ ENDCONFIG
   "motd": {
     "offline": {
       "line1": "§7This server is currently offline.",
+      "versionName": "§7Offline",
+      "versionProtocol": -1,
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
       "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.\n§7Please try again later.",
-      "ads": []
+      "ads": [
+        "§e§lAD: §fVisit our website for more info!"
+      ]
     },
     "suspended": {
       "line1": "§4§l⛔ Server Suspended",
+      "versionName": "§c§lSuspended ✖",
+      "versionProtocol": -1,
       "maxPlayers": 0,
       "onlinePlayers": 0,
       "playerSample": [],
       "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.\n§cPlease contact an administrator.",
-      "ads": []
-    },
-    "installing": {
-      "line1": "§e§l⏳ Installing...",
-      "line2": "§7{SERVER_NAME} is being set up. Please wait.",
-      "maxPlayers": 0,
-      "onlinePlayers": 0,
-      "playerSample": [],
-      "kickMessage": "§e§lServer Installing\n\n§7Please check back in a few minutes."
-    },
-    "starting": {
-      "line1": "§a§l▶ Starting...",
-      "line2": "§7{SERVER_NAME} is booting up. Almost ready!",
-      "maxPlayers": 0,
-      "onlinePlayers": 0,
-      "playerSample": [],
-      "kickMessage": "§a§lServer Starting\n\n§7Please wait a moment and try again."
+      "ads": [
+        "§e§lAD: §fContact support for assistance"
+      ]
     }
   },
   "minecraft": {
@@ -311,7 +287,80 @@ systemctl daemon-reload
 systemctl enable ${SERVICE_NAME} > /dev/null 2>&1
 ok "Systemd service created and enabled"
 
+# ─── Patch Pterodactyl Panel Start Button ────────────────────
+if [ -d "$PANEL_DIR" ]; then
+    echo ""
+    echo -e "  ${BOLD}Pterodactyl Panel Integration${NC}"
+    echo -e "  ${DIM}──────────────────────────────${NC}"
+    echo ""
+    info "Pterodactyl panel found at $PANEL_DIR"
+    ask "Patch the Start button to release ports first? (Y/n): "
+    read -r PATCH_PANEL
+    PATCH_PANEL=${PATCH_PANEL:-Y}
+
+    if [[ "$PATCH_PANEL" =~ ^[Yy]$ ]]; then
+        POWER_BTN="$PANEL_DIR/resources/scripts/components/server/console/PowerButtons.tsx"
+
+        # Backup original
+        if [ -f "$POWER_BTN" ] && [ ! -f "$POWER_BTN.bak" ]; then
+            cp "$POWER_BTN" "$POWER_BTN.bak"
+            ok "Backed up original PowerButtons.tsx"
+        fi
+
+        # Copy our modified version
+        cp "$INSTALL_DIR/pterodactyl/PowerButtons.tsx" "$POWER_BTN"
+        ok "Patched PowerButtons.tsx"
+
+        # Add nginx proxy if not already present
+        NGINX_CONF=$(find /etc/nginx -name "pterodactyl.conf" -o -name "panel.conf" 2>/dev/null | head -1)
+        if [ -n "$NGINX_CONF" ]; then
+            if ! grep -q "motd-api" "$NGINX_CONF" 2>/dev/null; then
+                ask "Add nginx reverse proxy for OfflineMOTD API? (Y/n): "
+                read -r ADD_PROXY
+                ADD_PROXY=${ADD_PROXY:-Y}
+
+                if [[ "$ADD_PROXY" =~ ^[Yy]$ ]]; then
+                    # Insert before the last closing brace
+                    sed -i '/^}/i \
+    # OfflineMOTD API proxy\
+    location /motd-api/ {\
+        proxy_pass http://127.0.0.1:3100/;\
+        proxy_set_header Host $host;\
+        proxy_set_header X-Real-IP $remote_addr;\
+    }' "$NGINX_CONF"
+
+                    nginx -t > /dev/null 2>&1 && systemctl reload nginx
+                    ok "Nginx proxy added for /motd-api/"
+                fi
+            else
+                ok "Nginx proxy already configured"
+            fi
+        fi
+
+        # Rebuild panel frontend
+        ask "Rebuild panel frontend now? (Y/n): "
+        read -r REBUILD
+        REBUILD=${REBUILD:-Y}
+
+        if [[ "$REBUILD" =~ ^[Yy]$ ]]; then
+            info "Rebuilding panel frontend (this may take a minute)..."
+            cd "$PANEL_DIR"
+            if NODE_OPTIONS=--openssl-legacy-provider npx yarn build:production > /dev/null 2>&1; then
+                ok "Panel frontend rebuilt successfully"
+            else
+                warn "Build failed — you may need to rebuild manually:"
+                echo -e "    ${DIM}cd $PANEL_DIR && NODE_OPTIONS=--openssl-legacy-provider yarn build:production${NC}"
+            fi
+            cd "$INSTALL_DIR"
+        else
+            warn "Remember to rebuild the panel frontend:"
+            echo -e "    ${DIM}cd $PANEL_DIR && NODE_OPTIONS=--openssl-legacy-provider yarn build:production${NC}"
+        fi
+    fi
+fi
+
 # ─── Start ──────────────────────────────────────────────────
+echo ""
 ask "Start OfflineMOTD now? (Y/n): "
 read -r START_NOW
 START_NOW=${START_NOW:-Y}
