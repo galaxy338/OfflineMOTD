@@ -1,6 +1,6 @@
 # OfflineMOTD
 
-**Pterodactyl-aware fake Minecraft MOTD server** — automatically discovers ALL your servers from the Pterodactyl Panel API. When a server is offline, suspended, installing, or starting, it shows a custom MOTD with **rotating ads** on that port. When the server comes online, it releases the port seamlessly.
+**Pterodactyl-aware fake Minecraft MOTD server** — automatically discovers ALL your servers from the Pterodactyl Panel API. When a server is offline or suspended, it shows a custom MOTD with **rotating ads** on that port. When the server comes online, it releases the port seamlessly.
 
 **Zero server configuration needed** — just provide your Pterodactyl API keys and it handles everything.
 
@@ -11,7 +11,7 @@
 ## Features
 
 - 🔍 **Auto-Discovery** — Fetches ALL servers from Pterodactyl automatically (with pagination)
-- 🎯 **Dynamic MOTD** — Different messages for offline, suspended, installing, and starting states
+- 🎯 **Dynamic MOTD** — Different messages for offline and suspended states with per-state version text
 - 📢 **Rotating Ads** — Cycle through multiple ads on line 2 (each refresh shows the next ad)
 - 🖥️ **Multi-Server** — Monitors every server on your panel simultaneously
 - 🌐 **Multi-Node** — Controller + Agent architecture for multiple Wings nodes
@@ -49,7 +49,7 @@ Edit `config.json` — you only need your Pterodactyl credentials:
     "panelUrl": "https://panel.example.com",
     "apiKey": "YOUR_APPLICATION_API_KEY",
     "clientApiKey": "YOUR_CLIENT_API_KEY",
-    "pollIntervalMs": 60000
+    "pollIntervalMs": 10000
   },
   "http": {
     "port": 3100
@@ -87,9 +87,9 @@ You'll see it discover and register all your servers:
 ## How It Works
 
 1. **Startup** → Calls `GET /api/application/servers?include=allocations` to find ALL servers + their ports
-2. **Per server**: checks if offline/suspended/installing/starting → starts fake MC on that port
-3. **Online servers** → no fake MC (real server has the port)
-4. **Every 60s** → re-polls all servers, picks up new ones, handles state changes
+2. **Per server**: checks if offline/suspended → starts fake MC on that port
+3. **Online/starting/installing servers** → no fake MC (real server needs the port)
+4. **Every 10s** → re-polls all servers, picks up new ones, handles state changes
 5. **Power control** → `POST /api/power/Survival/start` releases port + starts real server
 
 ---
@@ -134,11 +134,12 @@ Panel VPS (Controller)                 Node A (Agent)           Node B (Agent)
 {
   "mode": "agent",
   "agent": {
-    "controllerUrl": "http://panel-ip:3100",
+    "controllerUrl": "https://panel.example.com/motd-api",
     "authToken": "your-secret-token",
     "nodeId": 1,
+    "agentIp": "203.0.113.10",
     "agentPort": 3200,
-    "pollIntervalMs": 15000
+    "pollIntervalMs": 10000
   }
 }
 ```
@@ -149,20 +150,26 @@ The `nodeId` is your Pterodactyl node ID (found in Admin → Nodes).
 
 ## MOTD States & Rotating Ads
 
-Each state has its own MOTD. States with an `ads` array rotate ads on line 2 every refresh. States without `ads` show a static `line2`.
+Each state has its own MOTD. States with an `ads` array rotate ads on line 2 every refresh.
 
 | State | Ads | Description |
 |-------|-----|-------------|
 | `offline` | ✅ Yes | Server is powered off |
 | `suspended` | ✅ Yes | Server is suspended by admin |
-| `installing` | ❌ No | Server is being installed |
-| `starting` | ❌ No | Server is booting up |
+
+> **Note:** `starting` and `installing` states automatically release the port so the real server can bind it.
+
+### Version Override (Red X in Server List)
+
+Set `versionName` and `versionProtocol: -1` per state to show custom text with a red ✖ instead of signal bars:
 
 ```json
 {
   "motd": {
     "offline": {
       "line1": "§7This server is currently offline. §8| §bYour Brand",
+      "versionName": "§7Offline",
+      "versionProtocol": -1,
       "kickMessage": "§c§lServer Offline\n\n§7{SERVER_NAME} is currently offline.",
       "ads": [
         "§e§lAD: §fGet 10% off! §7Use code §aSAVE10",
@@ -171,18 +178,10 @@ Each state has its own MOTD. States with an `ads` array rotate ads on line 2 eve
     },
     "suspended": {
       "line1": "§4§l⛔ Server Suspended §8| §bYour Brand",
+      "versionName": "§c§lSuspended ✖",
+      "versionProtocol": -1,
       "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.",
       "ads": ["§e§lAD: §fVisit §bexample.com"]
-    },
-    "installing": {
-      "line1": "§e§l⏳ Installing... §8| §bYour Brand",
-      "line2": "§7{SERVER_NAME} is being set up. Please wait.",
-      "kickMessage": "§e§lServer Installing\n\n§7Please check back soon."
-    },
-    "starting": {
-      "line1": "§a§l▶ Starting... §8| §bYour Brand",
-      "line2": "§7{SERVER_NAME} is booting up. Almost ready!",
-      "kickMessage": "§a§lServer Starting\n\n§7Please wait a moment."
     }
   }
 }
@@ -222,8 +221,6 @@ Runs on port `3100` (configurable). Accepts server names or UUIDs.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/power/:name/:signal` | ⭐ Release port + send power signal to Pterodactyl |
-| `POST` | `/api/stop[/:name]` | Stop fake MC server(s) |
-| `POST` | `/api/start[/:name]` | Start fake MC server(s) |
 | `GET` | `/api/status[/:name]` | Get server status |
 | `POST` | `/api/agent/register` | Agent registers with controller |
 | `GET` | `/api/agent/servers?nodeId=N` | Agent polls for server list |

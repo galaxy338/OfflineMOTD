@@ -28,7 +28,7 @@
       "line1": "§4§l⛔ Server Suspended §8| §bDetriot Cloud",
       "versionName": "§c§lSuspended ✖",
       "versionProtocol": -1,
-      "maxPlayers": 0,
+      "maxPlayers": 0,upda
       "onlinePlayers": 0,
       "playerSample": [],
       "kickMessage": "§4§lServer Suspended\n\n§c{SERVER_NAME} has been suspended.\n§cPlease contact an administrator.",
