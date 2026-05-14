@@ -92,6 +92,10 @@ class ControlServer {
                     // Flow: stop fake MC → release port → send power signal to Pterodactyl
                     if (req.method === 'POST' && action === 'power' && name) {
                         const signal = extra || 'start';
+                        if (signal !== 'start') {
+                            this._sendJson(res, 400, { error: "Only the 'start' power signal is permitted." });
+                            return;
+                        }
                         log.info(TAG, `Power request: ${name} → ${signal}`);
                         log.info(TAG, `  Step 1: Stopping fake MC for '${name}' to release port...`);
                         const result = await this.handlers.onPower(name, signal);
@@ -195,7 +199,7 @@ class ControlServer {
                     this._sendJson(res, 404, {
                         error: 'Not found',
                         endpoints: [
-                            'POST /api/power/:serverName/:signal  (signal: start|stop|restart|kill)',
+                            'POST /api/power/:serverName/start',
                             'GET  /api/status[/:serverName]',
                             'POST /api/agent/register             (agent mode)',
                             'GET  /api/agent/servers?nodeId=N     (agent mode)',

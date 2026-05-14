@@ -220,13 +220,13 @@ Runs on port `3100` (configurable). Accepts server names or UUIDs.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/power/:name/:signal` | ⭐ Release port + send power signal to Pterodactyl |
+| `POST` | `/api/power/:name/start` | ⭐ Release port + send `start` power signal to Pterodactyl |
 | `GET` | `/api/status[/:name]` | Get server status |
 | `POST` | `/api/agent/register` | Agent registers with controller |
 | `GET` | `/api/agent/servers?nodeId=N` | Agent polls for server list |
 | `GET` | `/api/agent/list` | List connected agents |
 
-### Power Signals: `start` | `stop` | `restart` | `kill`
+> **Note:** Only the `start` power signal is supported to prevent abuse.
 
 ```bash
 # Start a server (release port + tell Pterodactyl to start)
